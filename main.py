@@ -51,8 +51,12 @@ def convert_to_webp(file_id, cursor, s3_client):
         # change url in database
         print("Updating database")
         cursor.execute(
-            "UPDATE files SET url=%s WHERE id=%s",
-            (f"{new_bucket_url}/{file[2]}.webp", file_id),
+            "UPDATE files SET url=%s,mime=%s,ext=%s,name=%s WHERE id=%s",
+            (f"{new_bucket_url}/{file[2]}.webp",
+             "image/webp", 
+             ".webp",
+             file[2] + ".webp",
+             file_id),
         )
         cursor.execute("COMMIT")
         
@@ -72,6 +76,9 @@ def convert_to_webp(file_id, cursor, s3_client):
                 content_type="image/webp",
             )
             formats_dict["large"]["url"] = f"{new_bucket_url}/{formats_dict["large"]['hash']}.webp"
+            formats_dict["large"]["mime"] = "image/webp"
+            formats_dict["large"]["ext"] = ".webp"
+            formats_dict["large"]["name"] = f"{formats_dict["large"]['hash']}.webp"
 
         if formats_dict.get("medium"):
             image = Image.open(download_image(formats_dict["medium"]["url"]))
@@ -84,6 +91,9 @@ def convert_to_webp(file_id, cursor, s3_client):
                 content_type="image/webp",
             )
             formats_dict["medium"]["url"] = f"{new_bucket_url}/{formats_dict["medium"]['hash']}.webp"
+            formats_dict["medium"]["mime"] = "image/webp"
+            formats_dict["medium"]["ext"] = ".webp"
+            formats_dict["medium"]["name"] = f"{formats_dict["medium"]['hash']}.webp"
 
         if formats_dict.get("small"):
             image = Image.open(download_image(formats_dict["small"]["url"]))
@@ -95,6 +105,9 @@ def convert_to_webp(file_id, cursor, s3_client):
                 content_type="image/webp",
             )
             formats_dict["small"]["url"] = f"{new_bucket_url}/{formats_dict["small"]['hash']}.webp"
+            formats_dict["small"]["mime"] = "image/webp"
+            formats_dict["small"]["ext"] = ".webp"
+            formats_dict["small"]["name"] = f"{formats_dict["small"]['hash']}.webp"
 
         if formats_dict.get("thumbnail"):
             image = Image.open(download_image(formats_dict["thumbnail"]["url"]))
@@ -106,6 +119,10 @@ def convert_to_webp(file_id, cursor, s3_client):
                 content_type="image/webp",
             )
             formats_dict["thumbnail"]["url"] = f"{new_bucket_url}/{formats_dict["thumbnail"]['hash']}.webp"
+            formats_dict["thumbnail"]["mime"] = "image/webp"
+            formats_dict["thumbnail"]["ext"] = ".webp"
+            formats_dict["thumbnail"]["name"] = f"{formats_dict["thumbnail"]['hash']}.webp"
+            
             
         formats_json = json.dumps(formats_dict)
 
@@ -147,11 +164,15 @@ def main():
         cur.execute("SELECT id,url,formats FROM files")
         print("Fetched files")
         files = cur.fetchall()
+        
+        print("Total files", len(files))
 
         for file in files:
             convert_to_webp(file[0], cursor=cur, s3_client=s3_client)
             # return
-
+        
+        cur.close()
+        conn.close()
     except Exception as e:
         print(e)
 
